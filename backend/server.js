@@ -1508,7 +1508,7 @@ app.get('/api/dashboard/stats', checkRateLimit, async (req, res) => {
       ${whereClause}
       ORDER BY t.CreatedDate DESC
     `;
-
+//
     const recentTicketsResult = await request.query(recentTicketsQuery);
 
     const dashboardData = {
