@@ -1388,7 +1388,7 @@ const TimelineItem = ({ history, isLast }: any) => (
                   fullWidth
                   label="E-posta"
                   margin="normal"
-                  size="small"
+                  size="medium"
                   value={newTicketForm.email}
                   onChange={(e) => setNewTicketForm(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="musteri@firma.com"
@@ -1404,7 +1404,7 @@ const TimelineItem = ({ history, isLast }: any) => (
                   fullWidth
                   label="Talep Konusu *"
                   margin="normal"
-                  size="small"
+                  size="medium"
                   value={newTicketForm.subject}
                   onChange={(e) => setNewTicketForm(prev => ({ ...prev, subject: e.target.value }))}
                   placeholder="Kısa ve net bir konu giriniz..."
@@ -1417,15 +1417,13 @@ const TimelineItem = ({ history, isLast }: any) => (
 
             <TextField
               fullWidth
-              label="Mail İçeriği"
+              label="Gelen Mail İçeriği"
               margin="normal"
               multiline
-              rows={3}
-              size="small"
+              rows={5}
               value={mailContent}
               onChange={(e) => setMailContent(e.target.value)}
               placeholder="Müşteriden gelen mail içeriğini buraya yapıştırabilirsiniz..."
-              helperText="Müşteri mail içeriğini bu alana kopyalayabilirsiniz"
               InputProps={{
                 sx: { fontSize: '0.875rem' }
               }}
@@ -1436,13 +1434,13 @@ const TimelineItem = ({ history, isLast }: any) => (
               label="Aksan Yazılım Tarafından Sorunun Açıklaması *"
               margin="normal"
               multiline
-              rows={4}
+              rows={5}
               value={newTicketForm.description}
               onChange={(e) => setNewTicketForm(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Sorunu detaylı bir şekilde açıklayın..."
             />
 
-            <FormControl fullWidth margin="normal" size="small">
+            <FormControl fullWidth margin="normal" size="medium">
               <InputLabel>Öncelik</InputLabel>
               <Select
                 value={newTicketForm.priority_id}
