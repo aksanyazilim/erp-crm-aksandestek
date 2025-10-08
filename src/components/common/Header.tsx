@@ -10,6 +10,7 @@ import {
   Menu as MenuIcon,
   ChevronLeft,
   ChevronRight,
+  Build,
   Support as SupportIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
@@ -69,15 +70,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, collapsed, onCollapseTogg
 
           {/* Logo */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, ml: { xs: 0.5, md: 0 } }}>
-            <SupportIcon sx={{ 
-              fontSize: 28, 
-              color: '#1e40af',
-              background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
-              borderRadius: '10px',
-              p: 0.5,
-              boxShadow: '0 4px 12px rgba(30, 64, 175, 0.25)'
-            }} />
-            <Typography 
+            <Build sx={{ 
+                fontSize: 28, 
+                color: '#1e40af', // Sadece mavi renk
+              }} /><Typography 
               variant="h6" 
               sx={{ 
                 fontWeight: 800, 

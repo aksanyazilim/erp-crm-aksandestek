@@ -802,7 +802,7 @@ const TimelineItem = ({ history, isLast }: any) => (
                 <Typography variant="h6" gutterBottom sx={{ borderBottom: '2px solid', borderColor: 'warning.main', pb: 1 }}>
                   📝 Talep Konusu
                 </Typography>
-                <Typography sx={{ mt: 2, whiteSpace: 'pre-wrap' }}>
+                <Typography sx={{ mt: 2, whiteSpace: 'pre-wrap', fontSize: '0.9rem'  }}>
                   {ticket.subject}
                 </Typography>
               </CardContent>
@@ -813,7 +813,7 @@ const TimelineItem = ({ history, isLast }: any) => (
                 <Typography variant="h6" gutterBottom sx={{ borderBottom: '2px solid', borderColor: 'info.main', pb: 1 }}>
                   📧 Gelen Mail İçeriği
                 </Typography>
-                <Typography sx={{ mt: 2, whiteSpace: 'pre-wrap' }}>
+                <Typography sx={{ mt: 2, whiteSpace: 'pre-wrap', fontSize: '0.9rem'  }}>
                   {ticket.mail_content || 'Mail içeriği bulunmuyor'}  {/* ✅ API'den gelen veriyi kullan */}
                 </Typography>
               </CardContent>
@@ -826,7 +826,7 @@ const TimelineItem = ({ history, isLast }: any) => (
                   <Typography variant="h6" gutterBottom sx={{ borderBottom: '2px solid', borderColor: 'error.main', pb: 1 }}>
                     🔍 Aksan Yazılım Sorunun Açıklaması
                   </Typography>
-                  <Typography sx={{ mt: 2, whiteSpace: 'pre-wrap' }}>
+                  <Typography sx={{ mt: 2, whiteSpace: 'pre-wrap', fontSize: '0.9rem'  }}>
                     {ticket.description}
                   </Typography>
                 </CardContent>
@@ -1036,33 +1036,33 @@ const TimelineItem = ({ history, isLast }: any) => (
                 </Box>
               </Grid>
 
-{/* FİLTRE SIFIRLAMA - MODERN KIRMIZI */}
-<Grid item xs={12} md={0.5}>
-  <Tooltip title="Tüm filtreleri temizle">
-    <IconButton 
-      onClick={clearFilters}
-      size="small"
-      sx={{ 
-        border: '2px solid',
-        borderColor: 'error.main',
-        borderRadius: '8px',
-        backgroundColor: 'transparent',
-        color: 'error.main',
-        '&:hover': {
-          backgroundColor: 'error.main',
-          color: 'white',
-          boxShadow: '0 4px 14px rgba(211, 47, 47, 0.4)',
-          transform: 'translateY(-1px)'
-        },
-        width: '41px',
-        height: '40px',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-      }}
-    >
-      <ClearIcon fontSize="small" />
-    </IconButton>
-  </Tooltip>
-</Grid>
+            {/* FİLTRE SIFIRLAMA - MODERN KIRMIZI */}
+            <Grid item xs={12} md={0.5}>
+              <Tooltip title="Tüm filtreleri temizle">
+                <IconButton 
+                  onClick={clearFilters}
+                  size="small"
+                  sx={{ 
+                    border: '2px solid',
+                    borderColor: 'error.main',
+                    borderRadius: '8px',
+                    backgroundColor: 'transparent',
+                    color: 'error.main',
+                    '&:hover': {
+                      backgroundColor: 'error.main',
+                      color: 'white',
+                      boxShadow: '0 4px 14px rgba(211, 47, 47, 0.4)',
+                      transform: 'translateY(-1px)'
+                    },
+                    width: '40px',
+                    height: '40px',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}
+                >
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Grid>
             </Grid>
 
             {/* AKTİF FİLTRELER GÖSTERGESİ - SADELEŞTİRİLMİŞ */}
@@ -1144,7 +1144,7 @@ const TimelineItem = ({ history, isLast }: any) => (
             <TableBody>
               {filteredTickets.map((ticket) => (
                 <TableRow key={ticket.id} hover>
-                  <TableCell>#{ticket.id}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>#{ticket.id}</TableCell>
                   <TableCell>{ticket.company_name}</TableCell>
                   <TableCell>{ticket.module_name || modules.find(m => m.id === ticket.module_id)?.name || 'Belirtilmemiş'}</TableCell>                 
                   <TableCell>
@@ -1433,7 +1433,7 @@ const TimelineItem = ({ history, isLast }: any) => (
 
             <TextField
               fullWidth
-              label="Aksan Sorunun Açıklaması *"
+              label="Aksan Yazılım Tarafından Sorunun Açıklaması *"
               margin="normal"
               multiline
               rows={4}
