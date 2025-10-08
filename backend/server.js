@@ -30,17 +30,54 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|pdf|doc|docx|xls|xlsx|txt/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    console.log('📎 File upload attempt:', {
+      originalname: file.originalname,
+      mimetype: file.mimetype
+    });
 
-    if (mimetype && extname) {
+    // ✅ GENİŞLETİLMİŞ DOSYA TİPLERİ
+    const allowedExtensions = /jpeg|jpg|png|gif|bmp|svg|pdf|doc|docx|xls|xlsx|txt|zip|rar|7z|csv|ppt|pptx/;
+    const allowedMimeTypes = [
+      // Resimler
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/svg+xml',
+      // PDF
+      'application/pdf',
+      // Word
+      'application/msword', // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      // Excel
+      'application/vnd.ms-excel', // .xls
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      // PowerPoint
+      'application/vnd.ms-powerpoint', // .ppt
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+      // Text
+      'text/plain', 'text/csv',
+      // Zip
+      'application/zip', 'application/x-zip-compressed',
+      'application/x-rar-compressed', 'application/x-7z-compressed',
+      // Genel binary
+      'application/octet-stream'
+    ];
+
+    const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedMimeTypes.includes(file.mimetype);
+
+    // ✅ Extension VEYA mimetype eşleşirse kabul et
+    if (mimetype || extname) {
+      console.log('✅ File accepted:', file.originalname);
       return cb(null, true);
     } else {
-      cb(new Error('Sadece resim, PDF, Word, Excel ve text dosyaları yükleyebilirsiniz.'));
+      console.log('❌ File rejected:', {
+        name: file.originalname,
+        mimetype: file.mimetype,
+        extension: path.extname(file.originalname)
+      });
+      cb(new Error(`Desteklenmeyen dosya formatı: ${file.originalname}`));
     }
   }
 });
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -52,6 +89,17 @@ if (process.env.NODE_ENV === 'development') {
     next();
   });
 }
+
+// ✅ Yüklenebilir dosya tiplerini göster
+console.log('📋 Yüklenebilir Dosya Tipleri:');
+console.log('  🖼️  Resim: JPG, PNG, GIF, BMP, SVG');
+console.log('  📄 PDF: PDF');
+console.log('  📝 Word: DOC, DOCX');
+console.log('  📊 Excel: XLS, XLSX, CSV');
+console.log('  📽️  PowerPoint: PPT, PPTX');
+console.log('  📦 Arşiv: ZIP, RAR, 7Z');
+console.log('  📃 Metin: TXT');
+console.log('  💾 Maksimum Boyut: 10MB');
 
 // Database bağlantısını başlat
 connectDB().then(() => {
@@ -104,6 +152,7 @@ app.post('/api/tickets/:id/upload', checkRateLimit, upload.array('files', 5), as
     const pool = getPool();
 
     console.log(`📎 File upload for ticket ${ticketId} by user ${decoded.userId}`);
+    console.log(`📦 Files received:`, req.files?.length || 0);
 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No files uploaded.' });
@@ -118,29 +167,41 @@ app.post('/api/tickets/:id/upload', checkRateLimit, upload.array('files', 5), as
       return res.status(404).json({ error: 'Ticket not found.' });
     }
 
-    // TicketFilesTbl tablosuna kaydet
-    const filePromises = req.files.map(file => {
-      return pool.request()
-        .input('TicketId', sql.Int, ticketId)
-        .input('FileName', sql.NVarChar, file.originalname)
-        .input('FilePath', sql.NVarChar, file.path)
-        .input('FileSize', sql.Int, file.size)
-        .input('UploadUserId', sql.Int, decoded.userId)
-        .input('FileType', sql.NVarChar, file.mimetype)
-        .query(`
-          INSERT INTO TicketFilesTbl (TicketId, FileName, FilePath, FileSize, UploadUserId, UploadDate, FileType)
-          VALUES (@TicketId, @FileName, @FilePath, @FileSize, @UploadUserId, GETDATE(), @FileType)
-          SELECT FileId, FileName, FilePath, FileSize, UploadDate, UploadUserId, FileType 
-          FROM TicketFilesTbl WHERE FileId = SCOPE_IDENTITY()
-        `);
-    });
+ const uploadedFiles = [];
+    
+for (const file of req.files) {
+  try {
+    console.log(`💾 Saving file: ${file.originalname} (${file.size} bytes)`);
+    
+    // ✅ FileType'ı kısalt (güvenlik için)
+    const shortFileType = file.mimetype.substring(0, 50);
+    
+    const result = await pool.request()
+      .input('TicketId', sql.Int, ticketId)
+      .input('FileName', sql.NVarChar, file.originalname)
+      .input('FilePath', sql.NVarChar, file.path)
+      .input('FileSize', sql.Int, file.size)
+      .input('UploadUserId', sql.Int, decoded.userId)
+      .input('FileType', sql.NVarChar, shortFileType) // ✅ Kısaltılmış FileType
+      .query(`
+        INSERT INTO TicketFilesTbl (TicketId, FileName, FilePath, FileSize, UploadUserId, UploadDate, FileType)
+        OUTPUT INSERTED.FileId, INSERTED.FileName, INSERTED.FilePath, INSERTED.FileSize, 
+               INSERTED.UploadDate, INSERTED.UploadUserId, INSERTED.FileType
+        VALUES (@TicketId, @FileName, @FilePath, @FileSize, @UploadUserId, GETDATE(), @FileType)
+      `);
 
-    const results = await Promise.all(filePromises);
-    const uploadedFiles = results.map(result => result.recordset[0]);
+    if (result.recordset && result.recordset[0]) {
+      uploadedFiles.push(result.recordset[0]);
+      console.log(`✅ File saved: ${file.originalname}`);
+    }
+  } catch (fileError) {
+    console.error(`❌ Error saving file ${file.originalname}:`, fileError);
+  }
+}
+console.log(`🎉 Total files uploaded: ${uploadedFiles.length}/${req.files.length}`);
 
-    console.log(`✅ ${req.files.length} files uploaded for ticket ${ticketId}`);
     res.json({
-      message: `${req.files.length} dosya başarıyla yüklendi`,
+      message: `${uploadedFiles.length} dosya başarıyla yüklendi`,
       files: uploadedFiles.map(file => ({
         id: file.FileId,
         name: file.FileName,
@@ -157,7 +218,6 @@ app.post('/api/tickets/:id/upload', checkRateLimit, upload.array('files', 5), as
     res.status(500).json({ error: 'Server error: ' + error.message });
   }
 });
-
 // Dosya listeleme endpoint'i - TicketFilesTbl için
 app.get('/api/tickets/:id/files', checkRateLimit, async (req, res) => {
   try {
@@ -558,10 +618,11 @@ app.get('/api/tickets', checkRateLimit, async (req, res) => {
                 t.CompanyId as company_id,
                 f.FirmaUnvani as company_name,
                 t.ModuleId as module_id,
-                m.ModuleAdi as module_name,
+                m.ModuleAdi as module_name,  -- ✅ MODULE NAME EKLENDİ
                 t.Subject as subject,
                 t.Description as description,
                 t.Email as email,
+                t.MailContent as mail_content,
                 t.StatusId as status_id,
                 s.StatusAdi as status_name,
                 t.PriorityId as priority_id,
@@ -578,7 +639,7 @@ app.get('/api/tickets', checkRateLimit, async (req, res) => {
                 t.Active as is_active
             FROM TicketTbl t
             LEFT JOIN FirmaTbl f ON t.CompanyId = f.FirmaId
-            LEFT JOIN ModuleTbl m ON t.ModuleId = m.ModuleId
+            LEFT JOIN ModuleTbl m ON t.ModuleId = m.ModuleId  -- ✅ MODULE JOIN
             LEFT JOIN StatusTbl s ON t.StatusId = s.StatusId
             LEFT JOIN PriorityTbl p ON t.PriorityId = p.PriorityId
             LEFT JOIN UserTbl u_assigned ON t.AssignedUserId = u_assigned.UserId
@@ -590,18 +651,15 @@ app.get('/api/tickets', checkRateLimit, async (req, res) => {
 
         // DOĞRU ROLE-BASED FILTERING
         if (userRole === 'customer') {
-            // Müşteri sadece kendi firmasının ticket'larını görür
             query += ` AND t.CompanyId = @companyId`;
             request.input('companyId', sql.Int, user.company_id);
             console.log(`🔒 Customer filter: company_id = ${user.company_id}`);
             
         } else if (userRole === 'support') {
-            // Support sadece kendine ATANMIŞ ticket'ları görür
             query += ` AND t.AssignedUserId = @userId`;
             request.input('userId', sql.Int, user.id);
             console.log(`🔧 Support filter: assigned_to = ${user.id} (ONLY ASSIGNED TICKETS)`);
         }
-        // Admin için filtre yok - tüm ticket'ları görür
 
         query += ` ORDER BY t.CreatedDate DESC`;
 
@@ -655,7 +713,6 @@ app.get('/api/tickets', checkRateLimit, async (req, res) => {
     }
 });
 
-// Create ticket endpoint
 app.post('/api/tickets', checkRateLimit, [
     body('subject').notEmpty().withMessage('Subject is required'),
     body('description').notEmpty().withMessage('Description is required'),
@@ -710,25 +767,24 @@ app.post('/api/tickets', checkRateLimit, [
         console.log(`👤 Creating ticket as ${userRole}:`, user.name);
 
         const {
-        company_id,
-        module_id,
-        subject,
-        description,
-        email,
-        priority_id = 2,
-        assigned_to = null,
-        due_date = null,
-        mail_content = '' // Yeni alan
+            company_id,
+            module_id,
+            subject,
+            description,
+            email,
+            priority_id = 2,
+            assigned_to = null,
+            due_date = null,
+            mail_content = ''
         } = req.body;
+
         // ROLE-BASED VALIDATION
         let finalCompanyId = company_id;
         
         if (userRole === 'customer') {
-            // Müşteri sadece kendi firması için talep açabilir
             finalCompanyId = user.company_id;
             console.log(`🔒 Customer forced to use company_id: ${finalCompanyId}`);
         } else if (userRole === 'support') {
-            // Support talep açamaz
             return res.status(403).json({ 
                 error: 'Destek personeli yeni talep oluşturulamaz' 
             });
@@ -743,30 +799,32 @@ app.post('/api/tickets', checkRateLimit, [
             priority_id,
             assigned_to,
             due_date,
+            mail_content,
             created_by: user.id
         });
 
-        // Ticket oluştur - SQL SERVER DATE FORMATI
+        // Ticket oluştur
         const ticketResult = await pool.request()
             .input('CompanyId', sql.Int, finalCompanyId)
             .input('ModuleId', sql.Int, module_id)
             .input('Subject', sql.NVarChar, subject)
             .input('Description', sql.NVarChar, description)
             .input('Email', sql.NVarChar, email || '')
-            .input('StatusId', sql.Int, 1) // Yeni
+            .input('MailContent', sql.NVarChar, mail_content)
+            .input('StatusId', sql.Int, 1)
             .input('PriorityId', sql.Int, priority_id)
             .input('AssignedUserId', sql.Int, assigned_to)
             .input('CreatedUserId', sql.Int, user.id)
             .input('DueDate', sql.DateTime, due_date)
             .query(`
                 INSERT INTO TicketTbl (
-                    CompanyId, ModuleId, Subject, Description, Email, 
+                    CompanyId, ModuleId, Subject, Description, Email, MailContent,
                     StatusId, PriorityId, AssignedUserId, CreatedUserId, DueDate,
                     CreatedDate, Active
                 )
                 OUTPUT INSERTED.TicketId as id
                 VALUES (
-                    @CompanyId, @ModuleId, @Subject, @Description, @Email,
+                    @CompanyId, @ModuleId, @Subject, @Description, @Email, @MailContent,
                     @StatusId, @PriorityId, @AssignedUserId, @CreatedUserId, @DueDate,
                     GETUTCDATE(), 1
                 )
@@ -777,7 +835,7 @@ app.post('/api/tickets', checkRateLimit, [
         // Status history ekle
         await pool.request()
             .input('TicketId', sql.Int, ticketId)
-            .input('StatusId', sql.Int, 1) // Yeni
+            .input('StatusId', sql.Int, 1)
             .input('UserId', sql.Int, user.id)
             .input('Aciklama', sql.NVarChar, 'Talep oluşturuldu')
             .query(`
@@ -789,10 +847,11 @@ app.post('/api/tickets', checkRateLimit, [
             ticketId: ticketId,
             companyId: finalCompanyId,
             subject: subject,
+            mailContent: mail_content ? 'with mail content' : 'no mail content',
             createdBy: user.name
         });
 
-        // Oluşturulan ticket'ı getir
+        // Oluşturulan ticket'ı getir - MODULE NAME EKLENDİ
         const newTicketResult = await pool.request()
             .input('ticketId', sql.Int, ticketId)
             .query(`
@@ -801,10 +860,11 @@ app.post('/api/tickets', checkRateLimit, [
                     t.CompanyId as company_id,
                     f.FirmaUnvani as company_name,
                     t.ModuleId as module_id,
-                    m.ModuleAdi as module_name,
+                    m.ModuleAdi as module_name,  -- ✅ MODULE NAME EKLENDİ
                     t.Subject as subject,
                     t.Description as description,
                     t.Email as email,
+                    t.MailContent as mail_content,
                     t.StatusId as status_id,
                     s.StatusAdi as status_name,
                     t.PriorityId as priority_id,
@@ -820,7 +880,7 @@ app.post('/api/tickets', checkRateLimit, [
                     t.EndDate as resolved_at
                 FROM TicketTbl t
                 LEFT JOIN FirmaTbl f ON t.CompanyId = f.FirmaId
-                LEFT JOIN ModuleTbl m ON t.ModuleId = m.ModuleId
+                LEFT JOIN ModuleTbl m ON t.ModuleId = m.ModuleId  -- ✅ MODULE JOIN
                 LEFT JOIN StatusTbl s ON t.StatusId = s.StatusId
                 LEFT JOIN PriorityTbl p ON t.PriorityId = p.PriorityId
                 LEFT JOIN UserTbl u_assigned ON t.AssignedUserId = u_assigned.UserId
@@ -863,7 +923,6 @@ app.post('/api/tickets', checkRateLimit, [
     }
 });
 // ================== UPDATE TICKET (PUT) ==================
-// server.js - GÜNCELLENMİŞ UPDATE TICKET ENDPOINT (7. MADDE)
 app.put(
   '/api/tickets/:id',
   checkRateLimit,
@@ -1010,15 +1069,6 @@ app.put(
       if (statusChanged || assignmentChanged || (notes && notes.trim())) {
         let historyNote = '';
         
-        if (statusChanged) {
-          historyNote = `Durum değişti: ${current.status_id} → ${finalStatusId}`;
-        }
-        if (assignmentChanged) {
-          historyNote += historyNote ? ' | ' : '';
-          historyNote += finalAssignedTo 
-            ? `Atanan kişi değişti: ${finalAssignedTo}`
-            : 'Atama kaldırıldı';
-        }
         if (notes && notes.trim()) {
           historyNote += historyNote ? ' | ' : '';
           historyNote += `Not: ${notes}`;
@@ -1050,6 +1100,7 @@ app.put(
             t.Subject as subject,
             t.Description as description,
             t.Email as email,
+            t.MailContent as mail_content,
             t.StatusId as status_id,
             s.StatusAdi as status_name,
             t.PriorityId as priority_id,
@@ -1508,7 +1559,7 @@ app.get('/api/dashboard/stats', checkRateLimit, async (req, res) => {
       ${whereClause}
       ORDER BY t.CreatedDate DESC
     `;
-//
+
     const recentTicketsResult = await request.query(recentTicketsQuery);
 
     const dashboardData = {
