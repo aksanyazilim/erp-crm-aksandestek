@@ -162,8 +162,7 @@ const TicketList: React.FC = () => {
     }
   };
 
-  // GELİŞMİŞ FİLTRELEME FONKSİYONU
-// FİLTRELEME FONKSİYONU - DÜZELTİLMİŞ
+// GELİŞMİŞ FİLTRELEME FONKSİYONU
 const filteredTickets = tickets.filter(ticket => {
   const {
     status,
